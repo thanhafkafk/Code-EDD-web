@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Scheduling</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .tab-container {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #eee;
+            flex-grow: 1;
+            text-align: center;
+            border: 1px solid #ddd;
+            transition: background-color 0.3s;
+        }
+        
+        .tab:first-child {
+            border-radius: 4px 0 0 4px;
+        }
+        
+        .tab:last-child {
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .tab.active {
+            background-color: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .process-list {
+            margin-top: 20px;
+        }
+        
+        .process {
+            display: flex;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+        }
+        
+        .process-id {
+            width: 60px;
+            font-weight: bold;
+        }
+        
+        .process-details {
+            flex-grow: 1;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .result-container {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #e8f4f8;
+            border-radius: 4px;
+        }
+        
+        .result-container h3 {
+            margin-top: 0;
+            color: #2980b9;
+        }
+        
+        .gantt-chart {
+            margin-top: 20px;
+            height: 40px;
+            display: flex;
+            overflow-x: auto;
+        }
+        
+        .gantt-block {
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            min-width: 40px;
+            flex-shrink: 0;
+        }
+        
+        .waiting-time, .turnaround-time {
+            margin-top: 10px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .clear-btn {
+            background-color: #e74c3c;
+        }
+        
+        .clear-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .process-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Job Scheduling</h1>
+        
+        <div class="tab-container">
+            <div class="tab active" data-tab="fcfs">FCFS - First Come First Serve</div>
+            <div class="tab" data-tab="edd">EDD - Earliest Due Date</div>
+        </div>
+        
+        <div class="tab-content active" id="fcfs-content">
+            <h2>First Come First Serve (FCFS)</h2>
+            <p>FCFS là giải thuật lập lịch đơn giản nhất, trong đó các tiến trình được xử lý theo thứ tự đến.</p>
+            
+            <div class="form-group">
+                <label for="fcfs-process-id">ID tiến trình:</label>
+                <input type="text" id="fcfs-process-id" placeholder="P1, P2, ...">
+            </div>
+            
+            <div class="form-group">
+                <label for="fcfs-arrival-time">Thời gian đến (ms):</label>
+                <input type="number" id="fcfs-arrival-time" min="0" value="0">
+            </div>
+            
+            <div class="form-group">
+                <label for="fcfs-burst-time">Thời gian xử lý (ms):</label>
+                <input type="number" id="fcfs-burst-time" min="1" value="5">
+            </div>
+            
+            <div class="process-actions">
+                <button id="fcfs-add-process">Thêm tiến trình</button>
+                <button id="fcfs-calculate" disabled>Tính toán</button>
+                <button class="clear-btn" id="fcfs-clear">Xóa tất cả</button>
+            </div>
+            
+            <div class="process-list" id="fcfs-process-list">
+                <!-- Processes will be added here -->
+            </div>
+            
+            <div class="result-container" id="fcfs-result" style="display: none;">
+                <h3>Kết quả giải thuật FCFS</h3>
+                <div class="gantt-chart" id="fcfs-gantt-chart"></div>
+                <div class="waiting-time">Thời gian chờ trung bình: <span id="fcfs-avg-waiting-time">0</span> ms</div>
+                <div class="turnaround-time">Thời gian hoàn thành trung bình: <span id="fcfs-avg-turnaround-time">0</span> ms</div>
+                
+                <h4>Bảng chi tiết</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tiến trình</th>
+                            <th>Thời gian đến</th>
+                            <th>Thời gian xử lý</th>
+                            <th>Thời gian bắt đầu</th>
+                            <th>Thời gian kết thúc</th>
+                            <th>Thời gian chờ</th>
+                            <th>Thời gian hoàn thành</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fcfs-table-body">
+                        <!-- Table rows will be added here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="edd-content">
+            <h2>Earliest Due Date (EDD)</h2>
+            <p>EDD là giải thuật lập lịch dựa trên thời hạn, trong đó tiến trình có thời hạn sớm nhất được xử lý trước.</p>
+            
+            <div class="form-group">
+                <label for="edd-process-id">ID tiến trình:</label>
+                <input type="text" id="edd-process-id" placeholder="P1, P2, ...">
+            </div>
+            
+            <div class="form-group">
+                <label for="edd-arrival-time">Thời gian đến (ms):</label>
+                <input type="number" id="edd-arrival-time" min="0" value="0">
+            </div>
+            
+            <div class="form-group">
+                <label for="edd-burst-time">Thời gian xử lý (ms):</label>
+                <input type="number" id="edd-burst-time" min="1" value="5">
+            </div>
+            
+            <div class="form-group">
+                <label for="edd-deadline">Thời hạn (ms):</label>
+                <input type="number" id="edd-deadline" min="1" value="10">
+            </div>
+            
+            <div class="form-group">
+                <label for="edd-weight">Trọng số:</label>
+                <input type="number" id="edd-weight" min="1" value="1">
+            </div>
+            
+            <div class="process-actions">
+                <button id="edd-add-process">Thêm tiến trình</button>
+                <button id="edd-calculate" disabled>Tính toán</button>
+                <button class="clear-btn" id="edd-clear">Xóa tất cả</button>
+            </div>
+            
+            <div class="process-list" id="edd-process-list">
+                <!-- Processes will be added here -->
+            </div>
+            
+            <div class="result-container" id="edd-result" style="display: none;">
+                <h3>Kết quả giải thuật EDD</h3>
+                <div class="gantt-chart" id="edd-gantt-chart"></div>
+                <div class="waiting-time">Thời gian chờ trung bình: <span id="edd-avg-waiting-time">0</span> ms</div>
+                <div class="turnaround-time">Thời gian hoàn thành trung bình: <span id="edd-avg-flow-time">0</span> ms</div>
+                <div class="tardiness">Số công việc trễ hạn: <span id="edd-tardy-jobs">0</span></div>
+                <div class="max-tardiness">Độ trễ tối đa: <span id="edd-max-tardiness">0</span> ms</div>
+                <div class="total-weighted-flow">Tổng trọng số flow time: <span id="edd-total-weighted-flow">0</span></div>
+                
+                <h4>Bảng chi tiết</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tiến trình</th>
+                            <th>Thời gian đến</th>
+                            <th>Thời gian xử lý</th>
+                            <th>Thời hạn</th>
+                            <th>Trọng số</th>
+                            <th>Thời gian bắt đầu</th>
+                            <th>Thời gian kết thúc</th>
+                            <th>Thời gian chờ</th>
+                            <th>Flow time</th>
+                            <th>Độ trễ</th>
+                            <th>Độ trễ thực</th>
+                        </tr>
+                    </thead>
+                    <tbody id="edd-table-body">
+                        <!-- Table rows will be added here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabId = tab.getAttribute('data-tab');
+                
+                // Remove active class from all tabs and contents
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab and its content
+                tab.classList.add('active');
+                document.getElementById(`${tabId}-content`).classList.add('active');
+            });
+        });
+        
+        // Process class
+        class Process {
+            constructor(id, arrivalTime, burstTime, deadline = null, weight = 1) {
+                this.id = id;
+                this.arrivalTime = parseInt(arrivalTime);
+                this.burstTime = parseInt(burstTime);
+                this.deadline = deadline ? parseInt(deadline) : null;
+                this.weight = weight ? parseInt(weight) : 1;
+                this.startTime = null;
+                this.endTime = null;
+                this.waitingTime = null;
+                this.flowTime = null;
+                this.lateness = null;
+                this.tardiness = null;
+            }
+        }
+        
+        // FCFS Algorithm
+        const fcfsProcesses = [];
+        const fcfsAddBtn = document.getElementById('fcfs-add-process');
+        const fcfsCalculateBtn = document.getElementById('fcfs-calculate');
+        const fcfsClearBtn = document.getElementById('fcfs-clear');
+        const fcfsProcessList = document.getElementById('fcfs-process-list');
+        const fcfsResult = document.getElementById('fcfs-result');
+        
+        fcfsAddBtn.addEventListener('click', () => {
+            const id = document.getElementById('fcfs-process-id').value || `P${fcfsProcesses.length + 1}`;
+            const arrivalTime = document.getElementById('fcfs-arrival-time').value;
+            const burstTime = document.getElementById('fcfs-burst-time').value;
+            
+            if (burstTime <= 0) {
+                alert('Thời gian xử lý phải lớn hơn 0');
+                return;
+            }
+            
+            const process = new Process(id, arrivalTime, burstTime);
+            fcfsProcesses.push(process);
+            
+            // Add to process list
+            const processElement = document.createElement('div');
+            processElement.className = 'process';
+            processElement.innerHTML = `
+                <div class="process-id">${process.id}</div>
+                <div class="process-details">
+                    <span>Thời gian đến: ${process.arrivalTime} ms</span>
+                    <span>Thời gian xử lý: ${process.burstTime} ms</span>
+                </div>
+            `;
+            fcfsProcessList.appendChild(processElement);
+            
+            // Clear input fields
+            document.getElementById('fcfs-process-id').value = '';
+            document.getElementById('fcfs-arrival-time').value = '0';
+            document.getElementById('fcfs-burst-time').value = '5';
+            
+            // Enable calculate button
+            fcfsCalculateBtn.disabled = false;
+        });
+        
+        fcfsCalculateBtn.addEventListener('click', () => {
+            // Sort processes by arrival time
+            const sortedProcesses = [...fcfsProcesses].sort((a, b) => a.arrivalTime - b.arrivalTime);
+            
+            let currentTime = 0;
+            let totalWaitingTime = 0;
+            let totalTurnaroundTime = 0;
+            
+            // Calculate start time, end time, waiting time, and turnaround time
+            for (let i = 0; i < sortedProcesses.length; i++) {
+                const process = sortedProcesses[i];
+                
+                // If process hasn't arrived yet, update current time
+                if (currentTime < process.arrivalTime) {
+                    currentTime = process.arrivalTime;
+                }
+                
+                process.startTime = currentTime;
+                process.endTime = currentTime + process.burstTime;
+                process.waitingTime = process.startTime - process.arrivalTime;
+                process.flowTime = process.endTime - process.arrivalTime;
+                
+                totalWaitingTime += process.waitingTime;
+                totalTurnaroundTime += process.flowTime;
+                
+                currentTime = process.endTime;
+            }
+            
+            // Calculate average waiting time and turnaround time
+            const avgWaitingTime = totalWaitingTime / sortedProcesses.length;
+            const avgTurnaroundTime = totalTurnaroundTime / sortedProcesses.length;
+            
+            // Display results
+            document.getElementById('fcfs-avg-waiting-time').textContent = avgWaitingTime.toFixed(2);
+            document.getElementById('fcfs-avg-turnaround-time').textContent = avgTurnaroundTime.toFixed(2);
+            
+            // Create Gantt chart
+            const ganttChart = document.getElementById('fcfs-gantt-chart');
+            ganttChart.innerHTML = '';
+            
+            for (let i = 0; i < sortedProcesses.length; i++) {
+                const process = sortedProcesses[i];
+                const width = process.burstTime * 20; // Scale by 20px per unit
+                
+                const ganttBlock = document.createElement('div');
+                ganttBlock.className = 'gantt-block';
+                ganttBlock.style.width = `${width}px`;
+                ganttBlock.style.backgroundColor = getRandomColor(process.id);
+                ganttBlock.textContent = process.id;
+                ganttChart.appendChild(ganttBlock);
+            }
+            
+            // Create table
+            const tableBody = document.getElementById('fcfs-table-body');
+            tableBody.innerHTML = '';
+            
+            for (let i = 0; i < sortedProcesses.length; i++) {
+                const process = sortedProcesses[i];
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${process.id}</td>
+                    <td>${process.arrivalTime}</td>
+                    <td>${process.burstTime}</td>
+                    <td>${process.startTime}</td>
+                    <td>${process.endTime}</td>
+                    <td>${process.waitingTime}</td>
+                    <td>${process.flowTime}</td>
+                `;
+                tableBody.appendChild(row);
+            }
+            
+            // Show result container
+            fcfsResult.style.display = 'block';
+        });
+        
+        fcfsClearBtn.addEventListener('click', () => {
+            fcfsProcesses.length = 0;
+            fcfsProcessList.innerHTML = '';
+            fcfsResult.style.display = 'none';
+            fcfsCalculateBtn.disabled = true;
+        });
+        
+        // EDD Algorithm
+        const eddProcesses = [];
+        const eddAddBtn = document.getElementById('edd-add-process');
+        const eddCalculateBtn = document.getElementById('edd-calculate');
+        const eddClearBtn = document.getElementById('edd-clear');
+        const eddProcessList = document.getElementById('edd-process-list');
+        const eddResult = document.getElementById('edd-result');
+        
+        eddAddBtn.addEventListener('click', () => {
+            const id = document.getElementById('edd-process-id').value || `P${eddProcesses.length + 1}`;
+            const arrivalTime = document.getElementById('edd-arrival-time').value;
+            const burstTime = document.getElementById('edd-burst-time').value;
+            const deadline = document.getElementById('edd-deadline').value;
+            const weight = document.getElementById('edd-weight').value;
+            
+            if (burstTime <= 0) {
+                alert('Thời gian xử lý phải lớn hơn 0');
+                return;
+            }
+            
+            const process = new Process(id, arrivalTime, burstTime, deadline, weight);
+            eddProcesses.push(process);
+            
+            // Add to process list
+            const processElement = document.createElement('div');
+            processElement.className = 'process';
+            processElement.innerHTML = `
+                <div class="process-id">${process.id}</div>
+                <div class="process-details">
+                    <span>Thời gian đến: ${process.arrivalTime} ms</span>
+                    <span>Thời gian xử lý: ${process.burstTime} ms</span>
+                    <span>Thời hạn: ${process.deadline} ms</span>
+                    <span>Trọng số: ${process.weight}</span>
+                </div>
+            `;
+            eddProcessList.appendChild(processElement);
+            
+            // Clear input fields
+            document.getElementById('edd-process-id').value = '';
+            document.getElementById('edd-arrival-time').value = '0';
+            document.getElementById('edd-burst-time').value = '5';
+            document.getElementById('edd-deadline').value = '10';
+            document.getElementById('edd-weight').value = '1';
+            
+            // Enable calculate button
+            eddCalculateBtn.disabled = false;
+        });
+        
+        eddCalculateBtn.addEventListener('click', () => {
+            // Sort processes by due date (deadline)
+            const sortedProcesses = [...eddProcesses].sort((a, b) => a.deadline - b.deadline);
+            
+            let currentTime = 0;
+            let totalWaitingTime = 0;
+            let totalFlowTime = 0;
+            let totalWeightedFlow = 0;
+            let tardyJobs = 0;
+            let maxTardiness = 0;
+            
+            // Calculate start time, end time, waiting time, flow time, and tardiness
+            for (let i = 0; i < sortedProcesses.length; i++) {
+                const process = sortedProcesses[i];
+                
+                // Process can't start before its arrival time
+                process.startTime = Math.max(currentTime, process.arrivalTime);
+                process.endTime = process.startTime + process.burstTime;
+                process.waitingTime = process.startTime - process.arrivalTime;
+                process.flowTime = process.endTime - process.arrivalTime;
+                process.lateness = process.endTime - process.deadline;
+                process.tardiness = Math.max(0, process.lateness);
+                
+                totalWaitingTime += process.waitingTime;
+                totalFlowTime += process.flowTime;
+                totalWeightedFlow += process.flowTime * process.weight;
+                
+                if (process.tardiness > 0) {
+                    tardyJobs++;
+                }
+                
+                maxTardiness = Math.max(maxTardiness, process.tardiness);
+                
+                // Update current time
+                currentTime = process.endTime;
+            }
+            
+            // Calculate average waiting time and flow time
+            const avgWaitingTime = totalWaitingTime / sortedProcesses.length;
+            const avgFlowTime = totalFlowTime / sortedProcesses.length;
+            
+            // Display results
+            document.getElementById('edd-avg-waiting-time').textContent = avgWaitingTime.toFixed(2);
+            document.getElementById('edd-avg-flow-time').textContent = avgFlowTime.toFixed(2);
+            document.getElementById('edd-tardy-jobs').textContent = tardyJobs;
+            document.getElementById('edd-max-tardiness').textContent = maxTardiness;
+            document.getElementById('edd-total-weighted-flow').textContent = totalWeightedFlow;
+            
+            // Create Gantt chart
+            const ganttChart = document.getElementById('edd-gantt-chart');
+            ganttChart.innerHTML = '';
+            
+            for (let i = 0; i < sortedProcesses.length; i++) {
+                const process = sortedProcesses[i];
+                const width = process.burstTime * 20; // Scale by 20px per unit
+                
+                const ganttBlock = document.createElement('div');
+                ganttBlock.className = 'gantt-block';
+                ganttBlock.style.width = `${width}px`;
+                ganttBlock.style.backgroundColor = getRandomColor(process.id);
+                ganttBlock.textContent = process.id;
+                ganttChart.appendChild(ganttBlock);
+            }
+            
+            // Create table
+            const tableBody = document.getElementById('edd-table-body');
+            tableBody.innerHTML = '';
+            
+            for (let i = 0; i < sortedProcesses.length; i++) {
+                const process = sortedProcesses[i];
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${process.id}</td>
+                    <td>${process.arrivalTime}</td>
+                    <td>${process.burstTime}</td>
+                    <td>${process.deadline}</td>
+                    <td>${process.weight}</td>
+                    <td>${process.startTime}</td>
+                    <td>${process.endTime}</td>
+                    <td>${process.waitingTime}</td>
+                    <td>${process.flowTime}</td>
+                    <td>${process.lateness}</td>
+                    <td>${process.tardiness}</td>
+                `;
+                tableBody.appendChild(row);
+            }
+            
+            // Show result container
+            eddResult.style.display = 'block';
+        });
+        
+        eddClearBtn.addEventListener('click', () => {
+            eddProcesses.length = 0;
+            eddProcessList.innerHTML = '';
+            eddResult.style.display = 'none';
+            eddCalculateBtn.disabled = true;
+        });
+        
+        // Helper function to generate random colors
+        function getRandomColor(id) {
+            // Generate a deterministic color based on process ID
+            const hash = id.split('').reduce((acc, char) => {
+                return char.charCodeAt(0) + ((acc << 5) - acc);
+            }, 0);
+            
+            const hue = hash % 360;
+            return `hsl(${hue}, 70%, 50%)`;
+        }
+    </script>
+</body>
+</html>
